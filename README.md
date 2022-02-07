@@ -40,7 +40,7 @@ AVR488 supports both ATmega168 or ATmega328 devices.
 
 ## Hardware Setup
 
-You will need to construct your own PCB hardware to support various ICs (ATmega168/328, MCP2221A, and SN75160/161) and the appropriate USB and IEEE 488 interface connectors. A complete [schematic](Hardware/schematic.pdf) is provided for convenience. An example of [prototype](Hardware/prototype.jpg) hardware is also included.
+You will need to construct your own PCB hardware to support various ICs (ATmega168/328, MCP2221A, and SN75160/161) and the appropriate USB and IEEE 488 interface connectors. A complete [schematic](Hardware/schematic.pdf) is provided for reference. An example of [prototype](Hardware/prototype.jpg) hardware is also included.
 
 For simplicity, and to save pins, the internal 8 MHz RC oscillator is used as the clock source, so no external oscillator or crystal is required.
 
@@ -49,7 +49,7 @@ For diagnostic purposes, three LED outputs are provided:
 * SRQ (Service Request): lights when the SRQ line is asserted, indicating that a device requires polling for status.
 * STATUS: flashes during startup and then is continuously toggled when the watchdog timer is reset to indicate active processing (the toggling is around 130 kHz, so the LED is slightly dimmer than when fully on).
 
-The baud rate for the ATmega serial port is fixed at 38400 bps (can be altered by changing a #define in the source code).
+The baud rate for the ATmega serial port is fixed at 38400 bps (this can be altered by changing a #define in the source code).
 
 ## Command List
 
@@ -135,7 +135,7 @@ Show the current state of the ATmega IO pins (for troubleshooting purposes).
 
 ## License
 
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the GPL-3.0 License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
