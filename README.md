@@ -4,9 +4,9 @@ A [Prologix](http://prologix.biz)<sup>TM</sup> compatible<sub><sup>(ish)</sup></
 
 ## Description
 
-I designed the AVR488 interface to allow me with to communicate with my various legacy Hewlett Packard (HP) test instruments. There are numerous Arduino-based variations of USB/IEEE 488 interfaces out there already, but I prefer programming AVR devices down at the "bare metal" level using C code, so I came up with this version. Since it's necessary to design a hardware interface for the IEEE 488 connector anyway, it's easy enough to add an ATmega and driver ICs into that design. Although it is intended to support a USB interface, a serial EIA232 connection could also be implemented by deleting the USB interface IC and replacing it with an appropriate TTL to EIA-232 driver.
+I designed the AVR488 interface so that I could communicate with my various legacy Hewlett Packard / Agilent test instruments. There are numerous Arduino-based variations of USB/IEEE 488 interfaces out there already, but I prefer programming AVR devices down at the "bare metal" level using C code, so I came up with this version. Since it's necessary to design a physical interface for the IEEE 488 connector anyway, it's easy enough to add an ATmega and driver ICs into that hardware design. Although it is intended to support a USB interface, a serial EIA-232 connection could also be implemented by deleting the USB interface IC and replacing it with an appropriate TTL to EIA-232 driver.
 
-The embedded code size is approximately 13.5 KB and uses about 360 bytes of RAM, so there's more than enough free memory in an ATmega168 device. I have not included a bootloader (I prefer programming the ATmega directly using an ISP interface). If desired, there are many bootloaders out there that could first be flashed to the device and then used to upload the AVR488 firmware.
+The embedded code size is approximately 13.5 KB and uses about 360 bytes of RAM, so there's more than enough free memory in an ATmega168 device. I have not included a bootloader (it avoids annoying startup delays and I prefer programming the ATmega directly using an ISP interface). If desired, there are many bootloaders available that could first be flashed to the device and then used to upload the AVR488 firmware.
 
 **NOTE**: only controller mode (`++mode 1`) is implemented at this time, as I had no need for device mode. The latter is a possible future enhancement.
 
@@ -14,10 +14,10 @@ The embedded code size is approximately 13.5 KB and uses about 360 bytes of RAM,
 
 ### Dependencies
 
-AVR488 supports ATmega168 or ATmega328 devices.
+AVR488 supports both ATmega168 or ATmega328 devices.
 
 * Requires [MicroChip Studio 7 for AVR devices](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio) for building the firmware.
-* An ISP programmer (AVRISP MKII, AVR JTAG ICE, etc.) is needed to program the flash memory.
+* An ISP programmer (AVRISP MKII, AVR JTAG ICE, etc.) is needed to program the flash memory and set the fuses.
 
 ### Hardware Interfaces
 * A USB 2.0 interface is provided by an [MCP2221A](https://www.microchip.com/en-us/product/MCP2221A) USB to TTL IC for connection to a host device (computer).
@@ -45,15 +45,15 @@ You will need to construct your own PCB hardware to support various ICs (ATmega1
 For simplicity, and to save pins, the internal 8 MHz RC oscillator is used as the clock source, so no external oscillator or crystal is required.
 
 For diagnostic purposes, three LED outputs are provided:
-* TE (Talk Enable) - flashes when the TE signal to the IEEE 488 drivers goes high for driving data onto the bus.
-* SRQ (Service Request) - lights when the SRQ line is asserted, indicating that a device requires polling for status.
-* Status - flashes during startup and then is continuously toggled when the watchdog timer is reset to indicate active processing (the toggling is around 130 kHz, so the LED is slightly dimmer than when fully on).
+* TE (Talk Enable): flashes when the TE signal to the IEEE 488 drivers goes high for driving data onto the bus.
+* SRQ (Service Request): lights when the SRQ line is asserted, indicating that a device requires polling for status.
+* STATUS: flashes during startup and then is continuously toggled when the watchdog timer is reset to indicate active processing (the toggling is around 130 kHz, so the LED is slightly dimmer than when fully on).
 
 The baud rate for the ATmega serial port is fixed at 38400 bps (can be altered by changing a #define in the source code).
 
 ## Command List
 
-The AVR488 command set is intended to be mostly compatible with the [Prologix GPIB-USB (HPIB-USB Controller)](http://prologix.biz/gpib-usb-controller.html). All commands are preceded by two plus signs (++). Any input that is not preceded by ++ is passed directly to the connected device(s). Input and commands from the host are buffered in a 254 byte buffer and then transmitted when either a CR (carriage return) or LF (line feed) character is received from the host. Not all Prologix commands have been implemented, and some do not operate exactly the same as the Prologix interface. Also, some extensions have been added for troubleshooting purposes (e.g., `debug` and `xdiag`) and ease of use (e.g., `echo`).
+The AVR488 command set is intended to be mostly compatible with the [Prologix GPIB-USB (HPIB-USB Controller)](http://prologix.biz/gpib-usb-controller.html). All commands are preceded by two plus signs (++). Any input not preceded by ++ is passed directly to the connected device(s). Input and commands from the host are buffered in a 254 byte buffer and then transmitted when either a CR (carriage return) or LF (line feed) character is received from the host. Not all Prologix commands have been implemented, and some do not operate exactly the same as the Prologix interface. Also, some extensions have been added for troubleshooting purposes (e.g., `debug` and `xdiag`) and ease of use (e.g., `echo`).
 
 #### `++addr [n]`
 Tell the interface which device to address (must be between 1 and 30). If no address is specified, the current device address will be displayed.
