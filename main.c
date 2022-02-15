@@ -15,7 +15,8 @@
 
 #define F_CPU 8000000UL	// internal RC oscillator frequency = 8 MHz
 #define BAUD 38400 // USART baud rate
-#define VERSION "1.0" // firmware version
+#define MY_VERSION "1.1" // firmware version display with the help screen
+#define PROLOGIX_VERSION "Version 4.40" // firmware version displayed by the ++ver command (for Prologix compatibility)
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -497,6 +498,7 @@ void set_eos_string(uint8_t code)
 */
 void print_help(void)
 {
+	printf_P(PSTR("\n\rAVR488 interface (V%s " __DATE__ " " __TIME__ ")\n\n\r"), MY_VERSION);
 	printf_P(PSTR("Available commands (all are preceded by \"++\" and not case sensitive):\n\r"));
 	printf_P(PSTR("addr 1-30      Tell controller which instrument to address.\n\r"));
 	printf_P(PSTR("addr           Query currently configured instrument address.\n\r"));
@@ -544,7 +546,7 @@ int main(void)
 	uint8_t partnerAddress = 0; // GPIB address of instrument we're communicating with
 	bool localecho = 1; // whether to echo characters received from the USB port to the user
 	bool autoread = 1; // whether to automatically query an instrument (if there's a "?" in a command string)
-	
+
 	// some temporary variables
 	bool writeError = 0;
 	int addrTemp;
@@ -567,7 +569,7 @@ int main(void)
 	uart_init( UART_BAUD_SELECT(BAUD,F_CPU) );
 	stdout = &usart_str; // point to the character output routine for stdio output stream
 
-	printf_P(PSTR("\n\rAVR488 interface started (V%s " __DATE__ " " __TIME__ ")\n\r"), VERSION);
+	printf_P(PSTR("\n\rAVR488 interface started\n\r"));
 
     // Read saved settings from the EEPROM
     if (eeprom_read_byte((uint8_t *)0x00) == VALID_EEPROM_CODE)
@@ -890,7 +892,8 @@ int main(void)
 			// ++ver
 			else if(IS_CMD("ver"))
 			{
-				printf_P(PSTR("%s\n\r"), VERSION);
+				printf_P(PSTR(PROLOGIX_VERSION));
+				printf_P(PSTR("\n\r"));
 			}
 
 			// ++xdiag
