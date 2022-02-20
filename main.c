@@ -919,24 +919,28 @@ int main(void)
 			// Command all talkers and listeners to stop
 			// and tell target to listen and send out command to the bus
 
-			writeError = addressTarget(partnerAddress);
-			if (eos_code != 3) // If have an EOS code, need to append termination byte(s)
-				strcat(buf, eos_string);
-            writeError = writeError || gpib_write(buf, 0); // send to the instrument
-
-			// If were in auto mode and command contains a question mark this is a query to the instrument, so automatically read the response
-			if (autoread)
+			if (buf[0] != 0) // ignore null commands
 			{
-				if ((strchr(buf, '?') != NULL) && !(writeError))
-					writeError = gpib_read(eoiUse, partnerAddress);
-				else
+
+				writeError = addressTarget(partnerAddress);
+				if (eos_code != 3) // If have an EOS code, need to append termination byte(s)
+					strcat(buf, eos_string);
+				writeError = writeError || gpib_write(buf, 0); // send to the instrument
+
+				// If were in auto mode and command contains a question mark this is a query to the instrument, so automatically read the response
+				if (autoread)
 				{
-					if (localecho)
+					if ((strchr(buf, '?') != NULL) && !(writeError))
+						writeError = gpib_read(eoiUse, partnerAddress);
+					else
 					{
-						if (writeError)
-							printf_P(PSTR("ERROR\n\r"));
-						else
-							printf_P(PSTR("OK\n\r"));
+						if (localecho)
+						{
+							if (writeError)
+								printf_P(PSTR("ERROR\n\r"));
+							else
+								printf_P(PSTR("OK\n\r"));
+						}
 					}
 				}
 			}
