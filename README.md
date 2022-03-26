@@ -7,7 +7,7 @@ A [Prologix](http://prologix.biz)<sup>TM</sup> compatible<sub><sup>(ish)</sup></
 
 ## Description
 
-I designed the AVR488 interface so that I could communicate with my various legacy Hewlett Packard / Agilent test instruments. There are numerous Arduino-based variations of USB/IEEE 488 interfaces out there already, but I prefer programming AVR devices down at the "bare metal" level using C code, so I came up with this version. Since it's necessary to design a physical interface for the IEEE 488 connector anyway, it's easy enough to add an ATmega and driver ICs into that hardware design. Although it is intended to support a USB interface, a serial EIA-232 connection could also be implemented by deleting the USB interface IC and replacing it with an appropriate TTL to EIA-232 driver.
+I designed the AVR488 interface so that I could communicate with my various legacy Hewlett Packard / Agilent test instruments. There are numerous Arduino-based variations of USB/IEEE 488 interfaces out there already, but I prefer programming AVR devices down at the "bare metal" level using C code, so I came up with this version. Since it's necessary to construct a physical interface for the IEEE 488 connector anyway, it's easy enough to add an ATmega and driver ICs into that hardware design. Although it is intended to support a USB interface, a serial EIA-232 connection could also be implemented by deleting the USB interface IC and replacing it with an appropriate TTL to EIA-232 driver.
 
 The embedded code size is approximately 13.5 KB and uses about 360 bytes of RAM, so there's more than enough free memory in an ATmega168 device. I have not included a bootloader (it avoids annoying startup delays and I prefer programming the ATmega directly using an ISP interface). If desired, there are many bootloaders available that could first be flashed to the device and then used to upload the AVR488 firmware.
 
@@ -17,7 +17,7 @@ The embedded code size is approximately 13.5 KB and uses about 360 bytes of RAM,
 
 ### Dependencies
 
-AVR488 supports both ATmega168 or ATmega328 devices.
+AVR488 supports both ATmega168 or ATmega328 devices (both the 10 and 20 MHz variants).
 
 * Requires [MicroChip Studio 7 for AVR devices](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio) for building the firmware.
 * An ISP programmer (AVRISP MKII, AVR JTAG ICE, etc.) is needed to program the flash memory and set the fuses.
@@ -27,7 +27,7 @@ AVR488 supports both ATmega168 or ATmega328 devices.
 * The fully level-compliant IEEE 488 interface is implemented using the [SN75160](https://www.ti.com/lit/gpn/sn75als160) and [SN75161](https://www.ti.com/lit/gpn/sn75als161) driver ICs for connection to IEEE 488 devices.
 * A direct serial EIA-232 interface could be implemented by using a [MAX232](https://www.ti.com/product/MAX232) (or equivalent) IC.
 
-### Building and Installing
+### Building and Installing the Firmware
 
 1. Create a new project in MicroChip Studio and select the appropriate ATmega device.
 2. Add the *.c and *.h files to the project.
@@ -41,22 +41,24 @@ AVR488 supports both ATmega168 or ATmega328 devices.
 8. Upon first power-up, default settings will be stored in EEPROM. Settings can be changed and saved to EEPROM as required.
 9. Enjoy!
 
-## Hardware Setup
+When the AVR488 is first connected to a computer it will create a new USB serial port. The internal baud rate for the AVR488 serial port is fixed at 38400 bps (this can only be altered by changing a #define in the source code and reflashing). Thus, you MUST set the baud rate in your PC software (terminal program, etc.) to 38400 bps. A simple test to confirm that communications is fully working is to type the command "++help" (without the quotes). This should return a list available commands.
 
-You will need to construct your own PCB hardware to support various ICs (ATmega168/328, MCP2221A, and SN75160/161) and the appropriate USB and IEEE 488 interface connectors. A full hardware design including [schematic](Hardware/AVR488-schematic.pdf) and PCB layout in KiCad format are also provided. The PCB is designed to fit inside a [Hammond 1593BB](https://www.hammfg.com/electronics/small-case/plastic/1593.pdf) plastic enclosure.
+## Hardware Construction and Setup
 
-For simplicity, and to save pins, the internal 8 MHz RC oscillator is used as the clock source, so no external oscillator or crystal is required.
+You will need to construct your own hardware to support various ICs (ATmega168/328, MCP2221A, and SN75160/161) and the appropriate USB and IEEE 488 interface connectors. To make it easier, a full hardware design including [schematic](Hardware/AVR488-schematic.pdf) and PCB layout in KiCad format are provided. The PCB hardware and components have been selected to be hacker/hobbyist friendly; through-hole components are used exclusively. I ordered my PCBs from [JLCPCB](https://jlcpcb.com/), but feel free to use your preferred vendor. The PCB has been designed to fit inside a [Hammond 1593BB](https://www.hammfg.com/electronics/small-case/plastic/1593.pdf) plastic enclosure.
+
+For simplicity, and to save pins, the internal 8 MHz RC oscillator in the ATmega168/328 is used as the clock source, so no external oscillator or crystal is required.
 
 For diagnostic purposes, three LED outputs are provided:
 * TE (Talk Enable): flashes when the TE signal to the IEEE 488 drivers goes high for driving data onto the bus.
 * SRQ (Service Request): lights when the SRQ line is asserted, indicating that a device requires polling for status.
 * STATUS: flashes during startup and then is continuously toggled when the watchdog timer is reset to indicate active processing (the toggling is around 130 kHz, so the LED is slightly dimmer than when fully on).
 
-The baud rate for the ATmega serial port is fixed at 38400 bps (this can be altered by changing a #define in the source code).
-
 ## Command List
 
-The AVR488 command set is intended to be mostly compatible with the [Prologix GPIB-USB (HPIB-USB Controller)](http://prologix.biz/gpib-usb-controller.html). All commands are preceded by two plus signs (++). Any input not preceded by ++ is passed directly to the connected device(s). Input and commands from the host are buffered in a 254 byte buffer and then transmitted when either a CR (carriage return) or LF (line feed) character is received from the host. Not all Prologix commands have been implemented, and some do not operate exactly the same as the Prologix interface. Also, some extensions have been added for troubleshooting purposes (e.g., `debug` and `xdiag`) and ease of use (e.g., `echo`).
+The AVR488 command set is intended to be mostly compatible with the [Prologix GPIB-USB (HPIB-USB Controller)](http://prologix.biz/gpib-usb-controller.html). All commands are preceded by two plus signs (++). Any input not preceded by ++ is passed directly to the connected device(s). Input and commands from the host are buffered in a 254 byte buffer and then transmitted when either a CR (carriage return) or LF (line feed) character is received from the host. Not all Prologix commands have been implemented, and some do not operate exactly the same as the Prologix interface. Also, some extensions have been added for troubleshooting purposes (e.g., `debug` and `xdiag`) or for ease of use (e.g., `echo`).
+
+Values enclosed in `[]` are optional. If a value is provided, the `[]` should not be included.
 
 #### `++addr [n]`
 Tell the interface which device to address (must be between 1 and 30). If no address is specified, the current device address will be displayed.
