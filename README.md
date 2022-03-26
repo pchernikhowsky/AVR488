@@ -1,6 +1,9 @@
 # AVR488
 
 A [Prologix](http://prologix.biz)<sup>TM</sup> compatible<sub><sup>(ish)</sup></sub> USB to [IEEE 488/GPIB/HP-IB](https://en.wikipedia.org/wiki/IEEE-488) controller interface based on the ATmega168/328 microcontroller.
+<p align="center">
+  <img src="Hardware/hardware.jpg" alt="Completed hardware"/>
+</p>
 
 ## Description
 
