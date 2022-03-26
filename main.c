@@ -498,7 +498,8 @@ void set_eos_string(uint8_t code)
 */
 void print_help(void)
 {
-	printf_P(PSTR("\n\rAVR488 interface (V%s " __DATE__ " " __TIME__ ")\n\n\r"), MY_VERSION);
+	printf_P(PSTR("\n\rAVR488 interface (V%s " __DATE__ " " __TIME__ ")\n\r"), MY_VERSION);
+	printf_P(PSTR("https://pchernikhowsky.github.io/AVR488/\n\n\r"));
 	printf_P(PSTR("Available commands (all are preceded by \"++\" and not case sensitive):\n\r"));
 	printf_P(PSTR("addr 1-30      Tell controller which instrument to address.\n\r"));
 	printf_P(PSTR("addr           Query currently configured instrument address.\n\r"));
