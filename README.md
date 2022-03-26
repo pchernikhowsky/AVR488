@@ -40,7 +40,7 @@ AVR488 supports both ATmega168 or ATmega328 devices.
 
 ## Hardware Setup
 
-You will need to construct your own PCB hardware to support various ICs (ATmega168/328, MCP2221A, and SN75160/161) and the appropriate USB and IEEE 488 interface connectors. A complete [schematic](Hardware/schematic.pdf) is provided for reference. An example of [prototype](Hardware/prototype.jpg) hardware is also included.
+You will need to construct your own PCB hardware to support various ICs (ATmega168/328, MCP2221A, and SN75160/161) and the appropriate USB and IEEE 488 interface connectors. A full hardware design including [schematic](Hardware/AVR488-schematic.pdf) and PCB layout in KiCad format are also provided. The PCB is designed to fit inside a [Hammond 1593BB](https://www.hammfg.com/electronics/small-case/plastic/1593.pdf) plastic enclosure.
 
 For simplicity, and to save pins, the internal 8 MHz RC oscillator is used as the clock source, so no external oscillator or crystal is required.
 
@@ -130,6 +130,8 @@ Show the current state of the ATmega IO pins (for troubleshooting purposes).
 
 ## Version History
 
+* 1.1
+    * Added KiCad hardware design.
 * 1.0
     * Initial Release
 
