@@ -16,7 +16,7 @@
 #define F_CPU 8000000UL	// internal RC oscillator frequency = 8 MHz
 #define BAUD 38400 // USART baud rate
 #define MY_VERSION "1.1" // firmware version display with the help screen
-#define PROLOGIX_VERSION "Version 4.40" // firmware version displayed by the ++ver command (for Prologix compatibility)
+#define PROLOGIX_VERSION "AVR488 GPIB-USB Controller Version 6.00" // firmware version displayed by the ++ver command (for Prologix compatibility)
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -41,8 +41,8 @@ FILE usart_str = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE); // Us
 char cmd_buf[5], buf[BUFSIZE];
 
 bool eoiUse; // whether we are using EOI to signal end of message from instrument
-bool debug; // enable or disable read&write error messages
 bool eot_enable; // whether to append eot_char after EOI
+char debug; // debug level for read&write error messages
 char eot_char; // end of transmission character added after EOI
 char eos_code; // end of transmission code to end a transmission to the instrument
 char eos_string[3]; // characters to end a transmission to the instrument
@@ -129,7 +129,7 @@ char _gpib_write(char *bytes, int length, bool attention)
 	FLOAT(NRFD); // Let talkers control NRFD and NDAC
 	FLOAT(NDAC);
 
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("NDAC:%u / NRFD:%u\n\r"), input(NDAC), input(NRFD));
 
 	for(i = 0;i < length;i++) //Loop through each character, write to bus
@@ -143,7 +143,7 @@ char _gpib_write(char *bytes, int length, bool attention)
 		    _wdt_reset();
 			if(ticks >= timeout)
 			{
-			    if (debug == 1)
+			    if (debug > 1)
 				    printf_P(PSTR("Timeout: Waiting for NRFD to go high and NDAC to go low while writing\n\r"));
 			    prep_gpib_pins();
 				return 1;
@@ -151,7 +151,7 @@ char _gpib_write(char *bytes, int length, bool attention)
 		}
 
 		// Enable port B for output and put the byte on the data lines using negative logic
-		if (debug == 1)
+		if (debug > 1)
 		{
 			if (attention)
 				printf_P(PSTR("Writing command byte: 0x%02x\n\r"), a);
@@ -164,7 +164,7 @@ char _gpib_write(char *bytes, int length, bool attention)
 		if((i==length-1) && eoiUse && !attention)
 		{
 			ASSERT(EOI); // If last byte in string assert EOI
-		    if (debug == 1)
+		    if (debug > 1)
 			    printf_P(PSTR("Asserting EOI\n\r"));
 		}
 		_delay_us(150); // delay to allow lines to settle
@@ -178,7 +178,7 @@ char _gpib_write(char *bytes, int length, bool attention)
 		    _wdt_reset();
 			if(ticks >= timeout)
 			{
-			    if (debug == 1)
+			    if (debug > 1)
 			        printf_P(PSTR("Timeout: Waiting for NDAC to go high while writing\n\r"));
 			    prep_gpib_pins();
 				return 1;
@@ -209,7 +209,7 @@ char _gpib_write(char *bytes, int length, bool attention)
  */
 char gpib_cmd(char *bytes, int length)
 {
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("gpib_cmd(): %d bytes\n\r"), length);
 
     // Write a GPIB CMD byte to the bus
@@ -238,7 +238,7 @@ char gpib_controller_assign(void)
  */
 char gpib_write(char *bytes, int length)
 {
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("gpib_write(): \"%s\"\n\r"),bytes);
 
     // Write a GPIB data string to the bus
@@ -270,7 +270,7 @@ char gpib_receive(char *byte)
 	    _wdt_reset();
 		if (ticks >= timeout)
 		{
-		    if (debug == 1)
+		    if (debug > 1)
 			    printf_P(PSTR("Timeout: Waiting for DAV to go low while reading\n\r"));
 		    prep_gpib_pins();
 			return 0xff;
@@ -285,7 +285,7 @@ char gpib_receive(char *byte)
 	eoiStatus = input(EOI);
 	_delay_us(150);
 
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("Read byte: %c 0x%02x\n\r"), isprint(a)?a:' ', a);
 
 	// Deassert NDAC, informing talker that we have accepted the byte
@@ -299,7 +299,7 @@ char gpib_receive(char *byte)
 	    _wdt_reset();
 		if(ticks >= timeout)
 		{
-		    if (debug == 1)
+		    if (debug > 1)
 			    printf_P(PSTR("Timeout: Waiting for DAV to go high while reading\n\r"));
 		    prep_gpib_pins();
 			return 0xff;
@@ -309,7 +309,7 @@ char gpib_receive(char *byte)
 	// Prep for next byte, we have not accepted anything
 	ASSERT(NDAC);
 
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("EOI: %x\n\r"), (eoiStatus>0)?0:1); // invert EOI (negative logic)
 
 	*byte = a;
@@ -319,15 +319,15 @@ char gpib_receive(char *byte)
 
 
 /*
- * Receive a multiple bytes from the GPIB bus until either EOI or timeout.
+ * Receive a multiple bytes from the GPIB bus until either EOI or timeout. Returns non-zero if an error occurs.
  */
 char gpib_read(bool read_until_eoi, uint8_t partnerAddress)
 {
-	char readCharacter,eoiStatus;
+	char readCharacter, eoiStatus;
 	char errorFound = 0;
 	bool reading_done = false;
 
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("gpib_read start - read_until_eoi=%d\n\r"), read_until_eoi);
 
 	cmd_buf[0] = CMD_UNT;
@@ -337,10 +337,10 @@ char gpib_read(bool read_until_eoi, uint8_t partnerAddress)
 	if (errorFound)
 		return 1;
 
-	if (debug == 1)
+	if (debug > 1)
 		printf_P(PSTR("gpib_read loop start\n\r"));
 
-	if (read_until_eoi == 1)
+	if (read_until_eoi == 1) // loop until we get an EOI indication
 	{
 		do
 		{
@@ -349,12 +349,15 @@ char gpib_read(bool read_until_eoi, uint8_t partnerAddress)
 			if (!debug)
 				putchar(readCharacter);
 			if(eoiStatus == 0xff)
-				return 1;
+			{
+				errorFound = 1;
+				break;
+			}
 		} while (eoiStatus);
 		if ( eot_enable)
 			putchar(eot_char);
 	}
-	else
+	else // loop until we get an EOS character
 	{
 		do
 		{
@@ -363,7 +366,10 @@ char gpib_read(bool read_until_eoi, uint8_t partnerAddress)
 			if (!debug)
 				putchar(readCharacter);
 			if (eoiStatus==0xff)
-				return 1;
+			{
+				errorFound = 1;
+				break;
+			}
 			if (eos_code != 3)
 			{
 			    if (readCharacter == eos_string[0]) // Check for EOM chars
@@ -372,17 +378,15 @@ char gpib_read(bool read_until_eoi, uint8_t partnerAddress)
 		            reading_done = true;
 			}
 		} while (reading_done == false);
-		reading_done = false;
 	}
 
-	errorFound = 0;
 	// Command all talkers and listeners to stop
 	cmd_buf[0] = CMD_UNT;
 	cmd_buf[1] = CMD_UNL;
 	errorFound = gpib_cmd(cmd_buf, 2);
 
-	if (debug == 1)
-		printf_P(PSTR("gpib_read end\n\r"));
+	if (debug > 1)
+		printf_P(PSTR("gpib_read end (error=%d\n\r"), errorFound);
 
 	return errorFound;
 }
@@ -506,8 +510,9 @@ void print_help(void)
 	printf_P(PSTR("auto 0|1       Enable (1) or disable (0) read after write.\n\r"));
 	printf_P(PSTR("auto           Query read after write setting.\n\r"));
 	printf_P(PSTR("clr            Issue device clear.\n\r"));
-	printf_P(PSTR("debug 0|1      Enable (1) or disable (0) debug messages.\n\r"));
+	printf_P(PSTR("debug N        Set level for debugging messages.\n\r"));
 	printf_P(PSTR("debug          Query current debug level.\n\r"));
+	printf_P(PSTR("default        Emulates the Arduino AR488 command.\n\r"));
 	printf_P(PSTR("echo 0|1       Enable (1) or disable (0) echoing of characters received from USB port.\n\r"));
 	printf_P(PSTR("echo           Query current echo setting.\n\r"));
 	printf_P(PSTR("eoi 0|1        Enable (1) or disable (0) EOI with last byte.\n\r"));
@@ -593,7 +598,7 @@ int main(void)
         eeprom_update_byte((uint8_t *)0x05, 3); // eos_code
         eeprom_update_byte((uint8_t *)0x06, 1); // eoiUse
         eeprom_update_byte((uint8_t *)0x07, 1); // autoread
-        eeprom_update_byte((uint8_t *)0x10, 1); // debug
+        eeprom_update_byte((uint8_t *)0x10, 0); // debug
         eeprom_update_byte((uint8_t *)0x11, 1); // echo
     }
 	_wdt_reset();
@@ -607,7 +612,7 @@ int main(void)
 	_delay_ms(200);
 
 	// Decode the cause of the CPU restart
-	if (debug == 1)
+	if (debug > 0)
 	{
 		if ( mcusr & 1<<WDRF)
 			printf_P(PSTR("Restart by watchdog.\n\r"));
@@ -622,7 +627,7 @@ int main(void)
 	// Main execution loop - never ends
 	while(1)
 	{
-		uart_gets(buf, (sizeof buf)-1, localecho); // Get a null terminated string from the USB interface
+		uart_gets(buf, (sizeof buf)-1, localecho); // Get a null terminated string from the USB interface - echo characters if enabled
 		if (localecho)
 		{
 			uart_putc('\n'); // send a carriage return and line feed
@@ -644,7 +649,8 @@ int main(void)
 					else
 					{
 						partnerAddress = addrTemp;
-						printf_P(PSTR("OK\n\r"));
+						if (debug > 0)
+							printf_P(PSTR("OK\n\r"));
 					}
 				}
 			}
@@ -660,7 +666,8 @@ int main(void)
 					autoread = atoi((buf+7));
 					if ((autoread != 0) && (autoread != 1))
 						autoread = 1; // If non-bool sent, set to enable
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -673,10 +680,11 @@ int main(void)
 				if (writeError)
 					printf_P(PSTR("ERROR\n\r"));
 				else
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 			}
 
-			// ++debug {0|1}
+			// ++debug {N}
 			else if(IS_CMD("debug"))
 			{
 				if (*(buf+7) == 0)
@@ -684,10 +692,23 @@ int main(void)
 				else if (*(buf+7) == ' ')
 				{
 					debug = atoi((buf+8));
-					if ((debug != 0) && (debug != 1))
-						debug = 0; // If non-bool sent, set to disabled
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
+			}
+
+			// ++default
+			else if(IS_CMD("default"))
+			{
+				localecho = 0;
+				autoread = 0;
+				eot_enable = 0;
+				eot_char = 0;
+				eoiUse = 0;
+				eos_code = 0;
+				set_eos_string(eos_code);
+				timeout = 1200;
+				debug = 0;
 			}
 
 			// ++echo {0|1}
@@ -700,7 +721,8 @@ int main(void)
 					localecho = atoi((buf+7));
 					if ((localecho != 0) && (localecho != 1))
 						localecho = 0; // If non-bool sent, set to disabled
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -713,8 +735,9 @@ int main(void)
 				{
 					eoiUse = atoi((buf+6));
 					if ((eoiUse != 0) && (eoiUse != 1))
-					eoiUse = 0; // If non-bool sent, set to disabled
-					printf_P(PSTR("OK\n\r"));
+						eoiUse = 0; // If non-bool sent, set to disabled
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -727,11 +750,12 @@ int main(void)
 				else if (*(buf+5) == ' ')
 				{
 					set_eos_string(atoi((buf+6)));
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
-			// ++eot_char N
+			// ++eot_char {N}
 			else if(IS_CMD("eot_char"))
 			{
 				if (*(buf+10) == 0)
@@ -739,7 +763,8 @@ int main(void)
 				else if (*(buf+10) == ' ')
 				{
 					eot_char = atoi((buf+11));
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -753,7 +778,8 @@ int main(void)
 					eot_enable = atoi((buf+13));
 					if ((eot_enable != 0) && (eot_enable != 1))
 						eot_enable = 0; // If non-bool sent, set to disabled
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -769,7 +795,8 @@ int main(void)
 				ASSERT(IFC); // Assert interface clear.
 				_delay_us(150);
 				FLOAT(IFC); // Finishing clearing interface
-				printf_P(PSTR("OK\n\r"));
+				if (debug > 0)
+					printf_P(PSTR("OK\n\r"));
 			}
 
 			// ++llo
@@ -781,7 +808,8 @@ int main(void)
 				if (writeError)
 					printf_P(PSTR("ERROR\n\r"));
 				else
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 			}
 
 			// ++loc
@@ -793,7 +821,8 @@ int main(void)
 				if (writeError)
 					printf_P(PSTR("ERROR\n\r"));
 				else
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 			}
 
 			// ++mode
@@ -804,7 +833,10 @@ int main(void)
 				else if (*(buf+6) == ' ')
 				{
 					if (atoi(buf+7) == 1)
-						printf_P(PSTR("OK\n\r"));
+					{
+						if (debug > 0)
+							printf_P(PSTR("OK\n\r"));
+					}
 					else
 						printf_P(PSTR("ERROR\n\r"));
 				}
@@ -818,7 +850,8 @@ int main(void)
 				else if (*(buf+13) == ' ')
 				{
 					timeout = atol((buf+14));
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -855,7 +888,8 @@ int main(void)
 						eeprom_update_byte((uint8_t *)0x10, debug);
 						eeprom_update_byte((uint8_t *)0x11, localecho);
 					}
-					printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 				}
 			}
 
@@ -885,9 +919,10 @@ int main(void)
 				cmd_buf[0] = CMD_GET;
 				writeError = writeError || gpib_cmd(cmd_buf, 1);
 				if (writeError)
-				printf_P(PSTR("ERROR\n\r"));
+					printf_P(PSTR("ERROR\n\r"));
 				else
-				printf_P(PSTR("OK\n\r"));
+					if (debug > 0)
+						printf_P(PSTR("OK\n\r"));
 			}
 
 			// ++ver
@@ -908,10 +943,7 @@ int main(void)
 
 			else
 			{
-				if (debug == 1)
-					printf_P(PSTR("Unrecognized command\n\r"));
-				else
-					printf_P(PSTR("ERROR\n\r"));
+				printf_P(PSTR("Unrecognized command\n\r"));
 			}
 		}
 		else
@@ -928,7 +960,7 @@ int main(void)
 					strcat(buf, eos_string);
 				writeError = writeError || gpib_write(buf, 0); // send to the instrument
 
-				// If were in auto mode and command contains a question mark this is a query to the instrument, so automatically read the response
+				// If we're in auto mode and command contains a question mark this is a query to the instrument, so automatically read the response
 				if (autoread)
 				{
 					if ((strchr(buf, '?') != NULL) && !(writeError))
@@ -940,7 +972,8 @@ int main(void)
 							if (writeError)
 								printf_P(PSTR("ERROR\n\r"));
 							else
-								printf_P(PSTR("OK\n\r"));
+								if (debug > 0)
+									printf_P(PSTR("OK\n\r"));
 						}
 					}
 				}
