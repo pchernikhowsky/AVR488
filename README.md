@@ -70,7 +70,19 @@ Enable (1) or disable (0) automatic read-after-write when a "?" is included in t
 Send a Select Device Clear (SDC) command to the currently addressed device.
 
 #### `++debug [n]`
-Enable (1) or disable (0) debug logging messages. Convenient for troubleshooting problematic connections. If no value is provided, the current debug setting will be displayed.
+Enable simple (1), more verbose (2), or disable (0) debug logging messages. Convenient for troubleshooting problematic connections. If no value is provided, the current debug setting will be displayed.
+
+#### `++default`
+Emulates functionality of the AR488 command with the same name. The interface configuration is set with the following parameters:
+* auto:	0
+* eoi:	0 (disabled)
+* eos:	0 (CR+LF)
+* eot_enable:	0 (disabled)
+* eot_char:	0
+* address: 0
+* read_tmo_ms:	1200
+* echo: 0
+* debug: 0
 
 #### `++echo [n]`
 Enable (1) or disable (0) echoing of characters received from USB port. Most IEEE 488 adapters require the sending application to enable local echo, but this is provided as an alternative. If no value is provided, the current echo setting will be displayed.
