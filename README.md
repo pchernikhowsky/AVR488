@@ -148,7 +148,7 @@ Show the current state of the ATmega IO pins (for troubleshooting purposes).
 ## Version History
 
 * 1.1
-    * Added KiCad hardware design.
+    * Firmware changes to improve AR488 and Prologix compatibility.
 * 1.0
     * Initial Release
 
